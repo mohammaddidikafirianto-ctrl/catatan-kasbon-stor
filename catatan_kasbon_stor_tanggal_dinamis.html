@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101827">
+<title>Catatan Keuangan</title>
+<style>
+:root{--bg:#0b1220;--panel:#121d2e;--panel2:#18263a;--line:#29384e;--text:#edf3fb;--muted:#91a2b8;--accent:#65d6ad;--blue:#78aaff;--red:#ff8b8b}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(145deg,#0b1220,#101b2b 55%,#0c1523);color:var(--text);font-family:Arial,Helvetica,sans-serif;min-height:100vh;height:100dvh;padding:2px 4px;overflow:hidden}
+.wrap{max-width:850px;margin:auto;height:100%;display:flex;flex-direction:column;gap:2px}
+header{display:none}
+.eyebrow{color:var(--accent);font-size:12px;letter-spacing:2px;font-weight:700;text-transform:uppercase}
+h1{font-size:clamp(24px,5vw,34px);margin:8px 0}
+.sub{color:var(--muted);font-size:13px;line-height:1.35}
+.panel{background:rgba(18,29,46,.96);border:1px solid var(--line);border-radius:8px;padding:3px;margin:0;box-shadow:0 8px 22px #0002}
+.wrap>.panel:last-child{flex:1;min-height:0;display:flex;flex-direction:column}
+.wrap>.panel:last-child .tablewrap{flex:1;min-height:0;overflow:hidden}
+.monthbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.monthname{font-size:20px;font-weight:700;text-transform:capitalize}
+.nav{display:flex;gap:8px}
+button{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:10px;padding:10px 13px;font-weight:700;cursor:pointer}
+button:active{transform:scale(.98)}
+.today{border-color:#3d8f79;color:var(--accent)}
+.tablewrap{overflow-x:auto}
+table{width:100%;height:100%;border-collapse:collapse;table-layout:fixed;min-width:0}
+th{text-align:left;color:var(--muted);font-size:10px;font-weight:700;padding:3px 4px;border-bottom:1px solid var(--line)}
+td{padding:1px 4px;border-bottom:1px solid #253349}
+tr:last-child td{border-bottom:0}
+.monthly-total-row td{background:#203149;border-top:2px solid #45617d;padding:5px 2px;font-size:10px;text-align:center}
+.monthly-total-row strong{display:block;font-size:clamp(12px,3.4vw,16px);overflow-wrap:anywhere;color:var(--accent)}
+.monthly-total-row td:first-child{color:var(--text);font-size:10px}
+.date{font-weight:700;white-space:nowrap;width:6%;font-size:10px}
+.day{display:inline;color:var(--muted);font-size:8px;font-weight:400;margin-left:3px}
+input.money{display:block;width:100%;min-width:0;height:20px;background:#0c1625;border:1px solid #31425b;border-radius:5px;padding:1px 4px;color:var(--text);font-size:11px;outline:none}
+input.money:focus{border-color:var(--accent);box-shadow:0 0 0 2px #65d6ad22}
+input.money::placeholder{color:#61738b}
+.totals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.totalbox{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:10px}
+.totalbox span{display:block;color:var(--muted);font-size:11px;margin-bottom:5px}
+.totalbox strong{font-size:clamp(17px,4vw,23px);overflow-wrap:anywhere}
+.totalbox.kasbon strong{color:var(--red)}
+.totalbox.stor strong{color:var(--accent)}
+.note{font-size:11px;color:var(--muted);line-height:1.35;margin:8px 2px 0}
+.status{font-size:10px;color:var(--accent);min-height:13px;margin-top:6px}
+@media(max-width:480px){
+ body{padding:9px 7px}
+ header{margin:2px 0 9px}
+ h1{font-size:23px;margin:5px 0}
+ .eyebrow{font-size:10px;letter-spacing:1.4px}
+ .panel{padding:9px;border-radius:12px;margin-bottom:7px}
+ .monthname{font-size:17px}
+ .nav{gap:5px}
+ button{padding:8px 10px;border-radius:8px;font-size:12px}
+ .tablewrap{overflow-x:hidden}
+ th{font-size:10px;padding:6px 4px}
+ td{padding:3px 4px}
+ .date{width:20%;font-size:12px}
+ .day{font-size:8px}
+ input.money{padding:6px 4px;font-size:12px;border-radius:6px}
+ .totals{gap:7px}
+ .totalbox{padding:8px}
+ .totalbox strong{font-size:17px}
+ .note{font-size:10px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<section class="panel">
+  <div class="monthbar">
+    <div>
+      <div class="eyebrow">Laporan bulanan</div>
+      <div class="monthname" id="monthName">—</div>
+    </div>
+    <div class="nav">
+      <button id="prevBtn" aria-label="Bulan sebelumnya">‹</button>
+      <button id="nextBtn" aria-label="Bulan berikutnya">›</button>
+      <button class="today" id="currentBtn">Bulan ini</button>
+    </div>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Tgl</th><th>Kasbon</th><th>Stor</th><th>Tgl</th><th>Kasbon</th><th>Stor</th></tr></thead>
+      <tbody id="rows"></tbody>
+      <tfoot>
+        <tr class="monthly-total-row">
+          <td colspan="6" style="text-align:center"><strong>TOTAL KASBON + STOR SEMUA TANGGAL: <span id="tableTotalGabungan">Rp0</span></strong></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  <div class="status" id="saveStatus" aria-live="polite">Data tersimpan otomatis di perangkat ini.</div>
+</section>
+
+</div>
+<script>
+(() => {
+  const rowsEl = document.getElementById('rows');
+  const monthNameEl = document.getElementById('monthName');
+  const tableTotalGabunganEl = document.getElementById('tableTotalGabungan');
+  const saveStatus = document.getElementById('saveStatus');
+  const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const dayNames = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  const storageKey = 'catatanKasbonStor_v1';
+  let viewed = new Date();
+  viewed = new Date(viewed.getFullYear(), viewed.getMonth(), 1);
+  let allData = {};
+
+  try {
+    const saved = localStorage.getItem(storageKey);
+    if (saved) allData = JSON.parse(saved) || {};
+  } catch (e) {
+    saveStatus.textContent = 'Penyimpanan tidak dapat dibaca di browser ini.';
+  }
+
+  const monthKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  const rupiah = n => 'Rp' + Math.round(n).toLocaleString('id-ID');
+  const daysInMonth = d => new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+
+  function save() {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(allData));
+      saveStatus.textContent = '✓ Tersimpan otomatis di perangkat ini';
+    } catch (e) {
+      saveStatus.textContent = 'Gagal menyimpan. Periksa ruang penyimpanan browser.';
+    }
+  }
+
+  function updateTotals() {
+    const data = allData[monthKey(viewed)] || {};
+    let gabungan = 0;
+    Object.values(data).forEach(entry => {
+      gabungan += (Number(entry.kasbon) || 0) + (Number(entry.stor) || 0);
+    });
+    tableTotalGabunganEl.textContent = rupiah(gabungan);
+  }
+
+  function render() {
+    const key = monthKey(viewed);
+    const data = allData[key] || {};
+    monthNameEl.textContent = `${monthNames[viewed.getMonth()]} ${viewed.getFullYear()}`;
+    rowsEl.innerHTML = '';
+
+    for (let row = 1; row <= 16; row++) {
+      const tr = document.createElement('tr');
+
+      function appendDayGroup(targetDay) {
+        if (targetDay > daysInMonth(viewed)) {
+          for (let i = 0; i < 3; i++) {
+            const empty = document.createElement('td');
+            empty.textContent = '';
+            tr.appendChild(empty);
+          }
+          return;
+        }
+
+        const date = new Date(viewed.getFullYear(), viewed.getMonth(), targetDay);
+        const entry = data[targetDay] || {};
+
+        const dateTd = document.createElement('td');
+        dateTd.className = 'date';
+        dateTd.textContent = targetDay;
+        const dayLabel = document.createElement('span');
+        dayLabel.className = 'day';
+        dayLabel.textContent = dayNames[date.getDay()];
+        dateTd.appendChild(dayLabel);
+
+        const kasbonTd = document.createElement('td');
+        kasbonTd.appendChild(makeInput('kasbon', targetDay, entry.kasbon ?? ''));
+
+        const storTd = document.createElement('td');
+        storTd.appendChild(makeInput('stor', targetDay, entry.stor ?? ''));
+
+        tr.append(dateTd, kasbonTd, storTd);
+      }
+
+      // Kiri: tanggal 1–15. Kanan: tanggal 16–31.
+      // Baris ke-16 mengosongkan sisi kiri dan menampilkan tanggal 31 di kanan.
+      appendDayGroup(row <= 15 ? row : 32);
+      appendDayGroup(row + 15);
+      rowsEl.appendChild(tr);
+    }
+    updateTotals();
+    saveStatus.textContent = key === monthKey(new Date()) ? 'Data bulan ini tersimpan otomatis di perangkat ini.' : 'Sedang melihat arsip bulan sebelumnya/berikutnya.';
+  }
+
+  function makeInput(type, day, value) {
+    const input = document.createElement('input');
+    input.className = 'money';
+    input.type = 'number';
+    input.inputMode = 'numeric';
+    input.min = '0';
+    input.step = '1';
+    input.placeholder = '0';
+    input.setAttribute('aria-label', `${type} tanggal ${day}`);
+    input.value = value;
+    input.addEventListener('input', () => {
+      const key = monthKey(viewed);
+      if (!allData[key]) allData[key] = {};
+      if (!allData[key][day]) allData[key][day] = {kasbon:'', stor:''};
+      allData[key][day][type] = input.value === '' ? '' : Math.max(0, Number(input.value) || 0);
+      if (allData[key][day].kasbon === '' && allData[key][day].stor === '') delete allData[key][day];
+      if (Object.keys(allData[key]).length === 0) delete allData[key];
+      save();
+      updateTotals();
+    });
+    return input;
+  }
+
+  document.getElementById('prevBtn').addEventListener('click', () => {
+    viewed = new Date(viewed.getFullYear(), viewed.getMonth()-1, 1);
+    render();
+  });
+  document.getElementById('nextBtn').addEventListener('click', () => {
+    viewed = new Date(viewed.getFullYear(), viewed.getMonth()+1, 1);
+    render();
+  });
+  document.getElementById('currentBtn').addEventListener('click', () => {
+    const now = new Date();
+    viewed = new Date(now.getFullYear(), now.getMonth(), 1);
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
